@@ -21,14 +21,19 @@ class Game:
             self.jugador2: 0
         }
 
+        self.reparto_realizado = False  # Flag para controlar el reparto inicial
+
         self.repartir_cartas()
 
     # Método para repartir cartas a ambos jugadores al inicio del juego
     def repartir_cartas(self):
         for _ in range(10):
-            self.jugador1.mano.append(self.mazo.pop())
-            self.jugador2.mano.append(self.mazo.pop())
+            if self.mazo:
+                self.jugador1.mano.append(self.mazo.pop())
+            if self.mazo:
+                self.jugador2.mano.append(self.mazo.pop())
 
+                
     # Método para cambiar el turno entre los jugadores
     def cambiar_turno(self):
         self.turno = (
@@ -73,6 +78,23 @@ class Game:
 
     # Método para manejar el turno de un jugador, mostrando su mano, permitiéndole elegir una carta y aplicando su efecto
     def jugar_turno(self):
+
+        # CASO: sin cartas
+        if len(self.jugador1.mano) == 0 and len(self.jugador2.mano) == 0:
+
+            if self.ball.estado.value == 0:
+                print("\nNo hay cartas, se reparten 3 nuevas\n")
+                self.repartir_3_cartas()
+                return
+            else:
+                print("No hay cartas y no se puede continuar el rally")
+
+                # El punto es para el rival
+                rival = self.jugador2 if self.turno == self.jugador1 else self.jugador1
+                self.sumar_punto(rival)
+                self.reiniciar_rally()
+                return
+
         self.mostrar_mano()
 
         cartas_validas = self.obtener_cartas_validas()
@@ -80,16 +102,14 @@ class Game:
         if not cartas_validas:
             print(f"{self.turno.nombre} no puede responder.")
 
-            # Si la pelota está en ROJO → punto para el rival
             if self.ball.estado.value == 1:
                 rival = self.jugador2 if self.turno == self.jugador1 else self.jugador1
                 self.sumar_punto(rival)
                 self.reiniciar_rally()
-            return
+                return
 
-        # Si no → pierde turno normal
-        self.cambiar_turno()
-        return
+            self.cambiar_turno()
+            return
 
         while True:
             try:
@@ -114,7 +134,7 @@ class Game:
         self.mostrar_estado()
 
         if hubo_punto:
-            return  # no cambiamos turno porque reinicia
+            return
 
         self.cambiar_turno()
 
@@ -158,6 +178,19 @@ class Game:
 
     #Reset del rally, se llama después de sumar puntos, para reiniciar la pelota y la última carta jugada
     def reiniciar_rally(self):
+        from data.cards_data import generar_mazo_basico  # import local
+
         self.ball = Ball()
         self.ultima_carta = None
-        print("\n--- Nuevo punto ---\n")
+
+        # 🔥 REGENERAR MAZO
+        self.mazo = generar_mazo_basico()
+
+        # Limpiar manos
+        self.jugador1.mano = []
+        self.jugador2.mano = []
+
+        # Repartir nuevas cartas
+        self.repartir_cartas()
+
+        print("\n--- Nuevo punto (cartas nuevas) ---\n")
