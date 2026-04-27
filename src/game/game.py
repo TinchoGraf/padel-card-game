@@ -25,6 +25,8 @@ class Game:
 
         self.repartir_cartas()
 
+        self.juego_terminado = False  # Flag para controlar el fin del juego
+
     # Método para repartir cartas a ambos jugadores al inicio del juego
     def repartir_cartas(self):
         for _ in range(10):
@@ -173,8 +175,11 @@ class Game:
     #Funcion para sumar puntos en cada ronda
     def sumar_punto(self, ganador):
         self.puntos[ganador] += 1
+
         print(f"\nPUNTO para {ganador.nombre}")
         print(f"Marcador: {self.jugador1.nombre} {self.puntos[self.jugador1]} - {self.jugador2.nombre} {self.puntos[self.jugador2]}")
+
+        self.verificar_ganador()
 
     #Reset del rally, se llama después de sumar puntos, para reiniciar la pelota y la última carta jugada
     def reiniciar_rally(self):
@@ -194,3 +199,13 @@ class Game:
         self.repartir_cartas()
 
         print("\n--- Nuevo punto (cartas nuevas) ---\n")
+
+    # Método para verificar si alguno de los jugadores ha alcanzado la condición de victoria (7 puntos con diferencia de 2)
+    def verificar_ganador(self):
+        p1 = self.puntos[self.jugador1]
+        p2 = self.puntos[self.jugador2]
+
+        if (p1 >= 7 or p2 >= 7) and abs(p1 - p2) >= 2:
+            ganador = self.jugador1 if p1 > p2 else self.jugador2
+            print(f"\n🏆 GANADOR: {ganador.nombre}")
+            self.juego_terminado = True

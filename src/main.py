@@ -6,7 +6,7 @@ def main():
 
     print("=== INICIO DEL JUEGO ===")
 
-    while True:
+    while not game.juego_terminado:
         game.jugar_turno()
 
         # condición de corte temporal
