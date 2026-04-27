@@ -13,9 +13,15 @@ class Game:
         self.mazo = generar_mazo_basico()
         self.historial = []
 
-        self.repartir_cartas()
+        self.ultima_carta = None  # 👈 YA lo habíamos agregado antes
 
-        self.ultima_carta = None
+        # 👇 NUEVO (marcador)
+        self.puntos = {
+            self.jugador1: 0,
+            self.jugador2: 0
+        }
+
+        self.repartir_cartas()
 
     # Método para repartir cartas a ambos jugadores al inicio del juego
     def repartir_cartas(self):
@@ -33,6 +39,14 @@ class Game:
     def aplicar_carta(self, carta):
         self.ball.aplicar_cambio(carta.efecto_base)
         self.historial.append(carta)
+
+        # SI llega a ROJO_PLUS → punto
+        if self.ball.estado.value == 2:
+            self.sumar_punto(self.turno)
+            self.reiniciar_rally()
+            return True  # hubo punto
+
+        return False
 
     # Método para mostrar el estado actual del juego, incluyendo el estado de la pelota
     def mostrar_estado(self):
@@ -64,9 +78,18 @@ class Game:
         cartas_validas = self.obtener_cartas_validas()
 
         if not cartas_validas:
-            print(f"{self.turno.nombre} no tiene jugadas válidas. Pierde el turno.")
-            self.cambiar_turno()
+            print(f"{self.turno.nombre} no puede responder.")
+
+            # Si la pelota está en ROJO → punto para el rival
+            if self.ball.estado.value == 1:
+                rival = self.jugador2 if self.turno == self.jugador1 else self.jugador1
+                self.sumar_punto(rival)
+                self.reiniciar_rally()
             return
+
+        # Si no → pierde turno normal
+        self.cambiar_turno()
+        return
 
         while True:
             try:
@@ -85,10 +108,13 @@ class Game:
 
         print(f"{self.turno.nombre} juega {carta}")
 
-        self.aplicar_carta(carta)
+        hubo_punto = self.aplicar_carta(carta)
         self.ultima_carta = carta
 
         self.mostrar_estado()
+
+        if hubo_punto:
+            return  # no cambiamos turno porque reinicia
 
         self.cambiar_turno()
 
@@ -113,3 +139,25 @@ class Game:
     
     def obtener_cartas_validas(self):
         return [c for c in self.turno.mano if self.carta_valida(c)]
+    
+    #funcion para repartir 3 cartas a cada jugador, se llama cuando se quedan sin cartas en la mano, para que el juego no se detenga
+    def repartir_3_cartas(self):
+        for _ in range(3):
+            if self.mazo:
+                self.jugador1.mano.append(self.mazo.pop())
+            if self.mazo:
+                self.jugador2.mano.append(self.mazo.pop())
+
+        print("\nSe reparten 3 nuevas cartas a cada jugador\n")
+
+    #Funcion para sumar puntos en cada ronda
+    def sumar_punto(self, ganador):
+        self.puntos[ganador] += 1
+        print(f"\nPUNTO para {ganador.nombre}")
+        print(f"Marcador: {self.jugador1.nombre} {self.puntos[self.jugador1]} - {self.jugador2.nombre} {self.puntos[self.jugador2]}")
+
+    #Reset del rally, se llama después de sumar puntos, para reiniciar la pelota y la última carta jugada
+    def reiniciar_rally(self):
+        self.ball = Ball()
+        self.ultima_carta = None
+        print("\n--- Nuevo punto ---\n")
