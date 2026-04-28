@@ -10,8 +10,8 @@ class Ball:
     def aplicar_cambio(self, valor):
         nuevo_valor = self.estado.value + valor
 
-        # Clamp entre -1 y 2
-        nuevo_valor = max(-1, min(2, nuevo_valor))
+        # limitar entre 0 y 3
+        nuevo_valor = max(0, min(3, nuevo_valor))
 
         self.estado = EstadoPelota(nuevo_valor)
 

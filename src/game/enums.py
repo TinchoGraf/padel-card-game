@@ -9,7 +9,7 @@ class TipoGolpe(Enum):
 
 # Enums para el estado de la pelota
 class EstadoPelota(Enum):
-    VERDE = -1
-    AMARILLO = 0
-    ROJO = 1
-    ROJO_PLUS = 2
+    VERDE = 0
+    AMARILLO = 1
+    ROJO = 2
+    ROJO_PLUS = 3

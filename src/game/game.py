@@ -58,22 +58,15 @@ class Game:
 
         self.historial.append(carta)
 
-        if self.ball.estado.value == 2:
-            self.sumar_punto(self.turno)
-
-            if not self.juego_terminado:
-                self.reiniciar_rally()
-
-            return True # hubo punto
+        if self.ball.estado.value == 3:
+            # NO dar punto automático
+            return False
 
         return False # no hubo punto
 
     # Método para mostrar el estado actual del juego, incluyendo el estado de la pelota
     def mostrar_estado(self):
-        print(self.ball)
-        print("\nESPECIALES:")
-        for i, carta in enumerate(self.turno.especiales):
-            print(f"E{i}: {carta}")
+        print(f"\n🎾 Pelota: {self.ball.estado.name}\n")
 
     # Método para mostrar la mano del jugador actual y permitirle elegir una carta para jugar
     def mostrar_mano(self):
@@ -84,6 +77,10 @@ class Game:
             "TRANSICION": [],
             "ATAQUE": []
         }
+
+        print("\nESPECIALES:")
+        for i, carta in enumerate(self.turno.especiales):
+                print(f"E{i}: {carta}")
 
         for i, carta in enumerate(self.turno.mano):
             grupos[carta.tipo.name].append((i, carta))
@@ -112,7 +109,64 @@ class Game:
                 self.sumar_punto(rival)
                 self.reiniciar_rally()
                 return
+        
 
+        # CASO: ROJO_PLUS
+        if self.ball.estado.value == 3:
+
+            # filtrar SOLO especiales defensivas
+            especiales_defensivas = [
+                (i, c) for i, c in enumerate(self.turno.especiales)
+                if c.efecto_especial == -2
+            ]
+
+            if not especiales_defensivas:
+                print(f"{self.turno.nombre} no puede defender un ROJO_PLUS.")
+
+                rival = self.jugador2 if self.turno == self.jugador1 else self.jugador1
+                self.sumar_punto(rival)
+
+                if not self.juego_terminado:
+                    self.reiniciar_rally()
+
+                return
+
+            # 🔥 FORZAR a jugar defensa especial
+            print("\n⚠️ TENÉS QUE DEFENDER CON UNA ESPECIAL (-2)\n")
+
+            for i, carta in especiales_defensivas:
+                print(f"E{i}: {carta}")
+
+            while True:
+                try:
+                    eleccion = input("Elegí una defensa especial: ").strip()
+
+                    if not eleccion.startswith("E"):
+                        print("Tenés que elegir una carta especial.")
+                        continue
+
+                    idx = int(eleccion[1:])
+                    carta = self.turno.especiales[idx]
+
+                    if carta.efecto_especial != -2:
+                        print("Esa no es defensiva.")
+                        continue
+
+                    # usar carta
+                    self.turno.especiales.pop(idx)
+
+                    print(f"{self.turno.nombre} defiende con {carta}")
+
+                    self.ball.aplicar_cambio(carta.efecto_especial)
+                    self.mostrar_estado()
+
+                    self.cambiar_turno()
+                    return
+
+                except (ValueError, IndexError):
+                    print("Entrada inválida.")
+
+        self.mostrar_estado()
         self.mostrar_mano()
 
         cartas_validas = self.obtener_cartas_validas()
@@ -131,45 +185,46 @@ class Game:
     
         while True:
             try:
-               eleccion = input("Elegí una carta: ")
+                eleccion = input("Elegí una carta: ").strip()
 
                 # ESPECIAL
-               if eleccion.startswith("E"):
-                  idx = int(eleccion[1:])
-                  carta = self.turno.especiales[idx]
-                  es_especial = True
+                if eleccion.startswith("E"):
+                    idx = int(eleccion[1:])
+                    carta = self.turno.especiales[idx]
+                    es_especial = True
+                else:
+                    idx = int(eleccion)
+                    carta = self.turno.mano[idx]
+                    es_especial = False
 
-               else:
-                  idx = int(eleccion)
-                  carta = self.turno.mano[idx]
-                  es_especial = False
+                if not self.carta_valida(carta):
+                    print("No podés jugar esa carta ahora.")
+                    continue
+
+                # eliminar carta
+                if es_especial:
+                    self.turno.especiales.pop(idx)
+                else:
+                    self.turno.mano.pop(idx)
+
+                break  # SOLO sale si todo salió bien
+
+            except (ValueError, IndexError):
+                print("Entrada inválida, probá de nuevo.")
+
+
+        #ESTO VA FUERA DEL WHILE
+        print(f"{self.turno.nombre} juega {carta}")
     
-               if not self.carta_valida(carta):
-                  print("No podés jugar esa carta ahora.")
-                  continue
-              
-                # recién acá eliminamos la carta
-               if es_especial:
-                  self.turno.especiales.pop(idx)
-               else:
-                  self.turno.mano.pop(idx)
+        hubo_punto = self.aplicar_carta(carta)
+        self.ultima_carta = carta
     
-               break
-          
-            except:
-                print("Entrada inválida")
+        self.mostrar_estado()
     
-            print(f"{self.turno.nombre} juega {carta}")
+        if hubo_punto:
+            return
     
-            hubo_punto = self.aplicar_carta(carta)
-            self.ultima_carta = carta
-    
-            self.mostrar_estado()
-    
-            if hubo_punto:
-                return
-    
-            self.cambiar_turno()
+        self.cambiar_turno()
     
     
     def carta_valida(self, carta):
@@ -178,6 +233,14 @@ class Game:
 
         tipo_anterior = self.ultima_carta.tipo
         tipo_actual = carta.tipo
+
+        # Si es especial, siempre válida (por ahora)
+        if carta.es_especial:
+            return True
+        
+        # Si está en ROJO_PLUS, solo especial defensiva
+        if self.ball.estado.value == 3:
+            return carta.es_especial and carta.efecto_especial == -2
 
         if tipo_anterior.name == "ATAQUE":
             return tipo_actual.name in ["DEFENSIVO", "TRANSICION"]

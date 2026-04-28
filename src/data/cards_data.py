@@ -25,8 +25,8 @@ def generar_mazo_basico():
 # Función para generar cartas especiales
 def generar_cartas_especiales():
     return [
-        Card("Defensa Pro Drive", "defensivo", es_especial=True, efecto_especial=-2),
-        Card("Ataque Pro Drive", "ataque", es_especial=True, efecto_especial=2),
-        Card("Defensa Pro Reves", "defensivo", es_especial=True, efecto_especial=-2),
-        Card("Ataque Pro Reves", "ataque", es_especial=True, efecto_especial=2),
+        Card("Defensa Pro Drive", TipoGolpe.DEFENSIVO, es_especial=True, efecto_especial=-2),
+        Card("Ataque Pro Drive", TipoGolpe.ATAQUE, es_especial=True, efecto_especial=2),
+        Card("Defensa Pro Reves", TipoGolpe.DEFENSIVO, es_especial=True, efecto_especial=-2),
+        Card("Ataque Pro Reves", TipoGolpe.ATAQUE, es_especial=True, efecto_especial=2),
     ]
