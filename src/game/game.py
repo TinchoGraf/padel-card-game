@@ -1,7 +1,7 @@
 # Archivo que contiene la clase principal del juego, que maneja la lógica del mismo
 from game.ball import Ball
 from game.player import Player
-from data.cards_data import generar_mazo_basico
+from data.cards_data import generar_cartas_especiales, generar_mazo_basico
 
 # Clase principal del juego, que maneja la lógica del mismo
 class Game:
@@ -27,6 +27,13 @@ class Game:
 
         self.juego_terminado = False  # Flag para controlar el fin del juego
 
+        self.puntos_para_ganar = 7  # Puntos necesarios para ganar el juego
+
+        from data.cards_data import generar_cartas_especiales
+
+        self.jugador1.especiales = generar_cartas_especiales()
+        self.jugador2.especiales = generar_cartas_especiales()
+
     # Método para repartir cartas a ambos jugadores al inicio del juego
     def repartir_cartas(self):
         for _ in range(10):
@@ -44,20 +51,29 @@ class Game:
 
     # Método para aplicar el efecto de una carta jugada, modificando el estado de la pelota
     def aplicar_carta(self, carta):
-        self.ball.aplicar_cambio(carta.efecto_base)
+        if carta.es_especial:
+            self.ball.aplicar_cambio(carta.efecto_especial)
+        else:
+            self.ball.aplicar_cambio(carta.efecto_base)
+
         self.historial.append(carta)
 
-        # SI llega a ROJO_PLUS → punto
         if self.ball.estado.value == 2:
             self.sumar_punto(self.turno)
-            self.reiniciar_rally()
-            return True  # hubo punto
 
-        return False
+            if not self.juego_terminado:
+                self.reiniciar_rally()
+
+            return True # hubo punto
+
+        return False # no hubo punto
 
     # Método para mostrar el estado actual del juego, incluyendo el estado de la pelota
     def mostrar_estado(self):
         print(self.ball)
+        print("\nESPECIALES:")
+        for i, carta in enumerate(self.turno.especiales):
+            print(f"E{i}: {carta}")
 
     # Método para mostrar la mano del jugador actual y permitirle elegir una carta para jugar
     def mostrar_mano(self):
@@ -112,35 +128,50 @@ class Game:
 
             self.cambiar_turno()
             return
-
+    
         while True:
             try:
-                eleccion = int(input("Elegí una carta: "))
-                carta = self.turno.mano[eleccion]
+               eleccion = input("Elegí una carta: ")
 
-                if not self.carta_valida(carta):
-                    print("No podés jugar esa carta ahora.")
-                    continue
+                # ESPECIAL
+               if eleccion.startswith("E"):
+                  idx = int(eleccion[1:])
+                  carta = self.turno.especiales[idx]
+                  es_especial = True
 
-                self.turno.mano.pop(eleccion)
-                break
-
+               else:
+                  idx = int(eleccion)
+                  carta = self.turno.mano[idx]
+                  es_especial = False
+    
+               if not self.carta_valida(carta):
+                  print("No podés jugar esa carta ahora.")
+                  continue
+              
+                # recién acá eliminamos la carta
+               if es_especial:
+                  self.turno.especiales.pop(idx)
+               else:
+                  self.turno.mano.pop(idx)
+    
+               break
+          
             except:
                 print("Entrada inválida")
-
-        print(f"{self.turno.nombre} juega {carta}")
-
-        hubo_punto = self.aplicar_carta(carta)
-        self.ultima_carta = carta
-
-        self.mostrar_estado()
-
-        if hubo_punto:
-            return
-
-        self.cambiar_turno()
-
-
+    
+            print(f"{self.turno.nombre} juega {carta}")
+    
+            hubo_punto = self.aplicar_carta(carta)
+            self.ultima_carta = carta
+    
+            self.mostrar_estado()
+    
+            if hubo_punto:
+                return
+    
+            self.cambiar_turno()
+    
+    
     def carta_valida(self, carta):
         if self.ultima_carta is None:
             return True  # primera jugada libre
@@ -180,6 +211,8 @@ class Game:
         print(f"Marcador: {self.jugador1.nombre} {self.puntos[self.jugador1]} - {self.jugador2.nombre} {self.puntos[self.jugador2]}")
 
         self.verificar_ganador()
+        if self.juego_terminado:
+            return
 
     #Reset del rally, se llama después de sumar puntos, para reiniciar la pelota y la última carta jugada
     def reiniciar_rally(self):
@@ -205,7 +238,7 @@ class Game:
         p1 = self.puntos[self.jugador1]
         p2 = self.puntos[self.jugador2]
 
-        if (p1 >= 7 or p2 >= 7) and abs(p1 - p2) >= 2:
+        if (p1 >= self.puntos_para_ganar or p2 >= self.puntos_para_ganar) and abs(p1 - p2) >= 2:
             ganador = self.jugador1 if p1 > p2 else self.jugador2
             print(f"\n🏆 GANADOR: {ganador.nombre}")
             self.juego_terminado = True
