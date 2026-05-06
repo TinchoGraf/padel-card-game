@@ -1,20 +1,24 @@
 from game.enums import EstadoPelota
 
-# Clase para representar la pelota y su estado
 class Ball:
-    # Inicialmente la pelota está en estado AMARILLO
     def __init__(self):
         self.estado = EstadoPelota.AMARILLO
+        self.fuerza = 1  # nueva mecánica visual
 
-    # Método para aplicar un cambio al estado de la pelota
     def aplicar_cambio(self, valor):
+        # actualizar estado correctamente
         nuevo_valor = self.estado.value + valor
 
-        # limitar entre 0 y 3
+        # clamp entre 0 y 3
         nuevo_valor = max(0, min(3, nuevo_valor))
 
         self.estado = EstadoPelota(nuevo_valor)
 
-    # Representación de la pelota para impresión
+        # actualizar fuerza (para barra visual)
+        if valor > 0:
+            self.fuerza += valor
+        elif valor < 0:
+            self.fuerza = max(1, self.fuerza + valor)
+
     def __repr__(self):
-        return f"Pelota: {self.estado.name}"
+        return f"Pelota: {self.estado.name} (Fuerza {self.fuerza})"
