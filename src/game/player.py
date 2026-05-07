@@ -1,15 +1,13 @@
-# Clase para representar a un jugador
 class Player:
-
-    # Inicialización del jugador con un nombre y una mano vacía
-    def __init__(self, nombre):
+    def __init__(self, nombre, posicion="drive"):
         self.nombre = nombre
+        self.posicion = posicion
         self.mano = []
+        self.especiales = []
+        self.bonus_golpes = []
 
-    # Método para jugar una carta de la mano, removiéndola de la misma
     def jugar_carta(self, index):
         return self.mano.pop(index)
 
-    # Representación del jugador para impresión
     def __repr__(self):
         return self.nombre
