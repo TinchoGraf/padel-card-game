@@ -1,4 +1,14 @@
+# Python
 __pycache__/
 *.pyc
-.env
+*.pyo
+*.pyd
+
+# Archivos de sonido generados
+src/assets/sounds/*.wav
+
+# VS Code
 .vscode/
+
+# Python version managers
+*.egg-info/

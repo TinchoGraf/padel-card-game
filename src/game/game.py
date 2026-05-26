@@ -19,6 +19,8 @@ class Game:
 
     def iniciar_con_seleccion(self, sel_j1, sel_j2):
         def aplicar(player, sel):
+            # nombre real: "Drive / Revés"
+            player.nombre = f"{sel['drive']['nombre']} / {sel['reves']['nombre']}"
             player.bonus_golpes = [
                 sel["drive"]["bonus_golpe"],
                 sel["reves"]["bonus_golpe"],

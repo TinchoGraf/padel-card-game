@@ -1,5 +1,7 @@
 import tkinter as tk
 from ui.player_select_window import PlayerSelectWindow
+from ui.game_over_window import GameOverWindow
+from audio.sound_manager import SoundManager
 
 
 class GameUI:
@@ -19,6 +21,7 @@ class GameUI:
         from game.game import Game
         self.game = Game()
         self.game.iniciar_con_seleccion(seleccion_j1, seleccion_j2)
+        self.sounds = SoundManager()
         self._build_ui()
         self.actualizar_ui()
 
@@ -39,7 +42,7 @@ class GameUI:
 
         # ── ZONA CENTRAL (info + semáforo) ───────────────────────────
         self.frame_centro = tk.Frame(self.bg_canvas, bg="#1e1e2e")
-        self.frame_centro.place(x=0, y=190, width=1100, height=130)
+        self.frame_centro.place(x=0, y=190, width=1100, height=160)
 
         self.label_turno = tk.Label(
             self.frame_centro,
@@ -81,9 +84,13 @@ class GameUI:
         )
         self.label_mensaje.pack()
 
+        # última carta jugada
+        self.frame_ultima_carta = tk.Frame(self.frame_centro, bg="#1e1e2e")
+        self.frame_ultima_carta.pack(pady=(5, 0))
+
         # ── ZONA JUGADOR ACTIVO (abajo) ──────────────────────────────
         self.frame_cartas = tk.Frame(self.bg_canvas, bg="#1e1e2e")
-        self.frame_cartas.place(x=0, y=330, width=1100, height=360)
+        self.frame_cartas.place(x=0, y=360, width=1100, height=340)
 
     # ── CANCHA ──────────────────────────────────────────────────────
 
@@ -143,8 +150,8 @@ class GameUI:
             text=f"Turno de: {self.game.turno.nombre}"
         )
 
-        # ── NUEVO: chequear si el jugador activo tiene jugadas posibles ──
-        if not self.game.obtener_cartas_validas():
+        # sin jugadas
+        if not self.game.juego_terminado and not self.game.obtener_cartas_validas():
             rival = (
                 self.game.jugador2
                 if self.game.turno == self.game.jugador1
@@ -157,6 +164,28 @@ class GameUI:
                 text=f"Sin jugadas — punto para {rival.nombre}"
             )
 
+        # ── NUEVO: fin de partida ────────────────────────────────────────
+        if self.game.juego_terminado:
+            ganador = (
+                self.game.jugador1
+                if self.game.puntos[self.game.jugador1] > self.game.puntos[self.game.jugador2]
+                else self.game.jugador2
+            )
+            GameOverWindow(
+                self.root,
+                ganador_nombre=ganador.nombre,
+                puntos=(
+                    self.game.jugador1.nombre,
+                    self.game.puntos[self.game.jugador1],
+                    self.game.jugador2.nombre,
+                    self.game.puntos[self.game.jugador2],
+                ),
+                on_rematch=self._rematch,
+                on_quit=lambda: self.root.destroy()
+            )
+            return  # no seguir renderizando
+
+        self._render_ultima_carta()
         self.render_cartas()
 
     # ── RENDER CARTAS ───────────────────────────────────────────────
@@ -329,10 +358,74 @@ class GameUI:
 
         hubo_punto = self.game.aplicar_carta(carta)
 
+        # ── sonidos ─────────────────────────────────────────────────────
+        if hubo_punto:
+            self.sounds.play_punto()
+        elif carta.es_especial:
+            self.sounds.play("especial")
+        else:
+            self.sounds.play("golpe")
+
         if not hubo_punto:
             self.game.cambiar_turno()
 
         self.actualizar_ui()
+
+    #-- REMATCH Y QUITAR ─────────────────────────────────────────────
+
+    def _rematch(self):
+        # destruir UI del juego actual
+        for widget in self.root.winfo_children():
+            widget.destroy()
+
+        # volver a la pantalla de selección
+        self.game = None
+        PlayerSelectWindow(self.root, self._iniciar_juego)
+
+    def _render_ultima_carta(self):
+        for w in self.frame_ultima_carta.winfo_children():
+            w.destroy()
+
+        carta = self.game.ultima_carta
+
+        if carta is None:
+            tk.Label(
+                self.frame_ultima_carta,
+                text="— saque —",
+                font=("Arial", 10),
+                fg="#555577",
+                bg="#1e1e2e"
+            ).pack()
+            return
+
+        tipo = carta.tipo.name
+        color = self.color_por_tipo(tipo)
+        efecto = carta.efecto_especial if carta.es_especial else carta.efecto_base
+
+        tk.Label(
+            self.frame_ultima_carta,
+            text="ÚLTIMA CARTA:",
+            font=("Arial", 8),
+            fg="#888888",
+            bg="#1e1e2e"
+        ).pack(side="left", padx=(0, 8))
+
+        # pastilla con nombre y efecto
+        pastilla = tk.Frame(
+            self.frame_ultima_carta,
+            bg=color,
+            padx=10,
+            pady=3
+        )
+        pastilla.pack(side="left")
+
+        tk.Label(
+            pastilla,
+            text=f"{carta.nombre}  {efecto:+}",
+            font=("Arial", 10, "bold"),
+            fg="white",
+            bg=color
+        ).pack()
 
     # ── RUN ─────────────────────────────────────────────────────────
 
